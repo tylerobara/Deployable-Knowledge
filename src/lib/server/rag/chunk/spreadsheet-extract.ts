@@ -7,37 +7,32 @@ export async function extractSpreadsheet(
 	source: Source,
 	onProgress?: (ratio: number, message: string) => void
 ): Promise<ExtractionResult> {
-	const { default: excel } = await import('exceljs');
-	const workbook = new excel.Workbook();
-	await workbook.xlsx.readFile(source.path);
-
-	const worksheets = workbook.worksheets;
+	const xlsx = (await import('node-xlsx')).default;
+	const sheets = xlsx.parse(source.path);
 	const chunks: ExtractedChunk[] = [];
 	let cellCount = 0;
 
-	worksheets.forEach((worksheet, sheetIndex) => {
+	sheets.forEach((sheet, sheetIndex) => {
 		onProgress?.(
-			(sheetIndex + 1) / Math.max(worksheets.length, 1),
-			`Reading sheet ${sheetIndex + 1} of ${worksheets.length}`
+			(sheetIndex + 1) / Math.max(sheets.length, 1),
+			`Reading sheet ${sheetIndex + 1} of ${sheets.length}`
 		);
 
-		const rows: string[][] = [];
-		worksheet.eachRow((row) => {
-			const cells: string[] = [];
-			row.eachCell({ includeEmpty: true }, (cell) => {
-				cells.push(cell.text ?? '');
-			});
+		const rows: string[][] = sheet.data.map((row) =>
+			row.map((cell) => (cell == null ? '' : String(cell)))
+		);
+
+		for (const cells of rows) {
 			cellCount += cells.length;
 			if (cellCount > MAX_SPREADSHEET_CELLS) {
 				throw new Error(
 					`This spreadsheet has more than ${MAX_SPREADSHEET_CELLS.toLocaleString('en-US')} cells and cannot be ingested.`
 				);
 			}
-			rows.push(cells);
-		});
+		}
 
-		chunks.push(...rowsToTablePages(source, rows, sheetIndex, worksheet.name));
+		chunks.push(...rowsToTablePages(source, rows, sheetIndex, sheet.name));
 	});
 
-	return { chunks, pageCount: worksheets.length };
+	return { chunks, pageCount: sheets.length };
 }
