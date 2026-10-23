@@ -55,7 +55,7 @@
 		"bits-ui": "2.18.1",
 		"chokidar": "^5.0.0",
 		"clsx": "2.1.1",
-		"dompurify": "^3.4.11",
+		"dompurify": "^3.4.17",
 		"dotenv": "^17.4.2",
 		"drizzle-orm": "^0.45.2",
 		"node-xlsx": "^0.24.0",
